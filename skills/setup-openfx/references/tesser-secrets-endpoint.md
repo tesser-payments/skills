@@ -24,8 +24,8 @@ than executing them, and pins `$TESSER_BASE_URL`/`$TESSER_AUTH_URL` to the allow
 nothing sensitive is typed, and `jq -n --arg` JSON-encodes the PEM's newlines correctly:
 
 ```bash
-load_openfx_env sandbox          # or `prod`; exports OPENFX_* + TESSER_* incl. validated $TESSER_BASE_URL/$TESSER_AUTH_URL
-# ...mint $ACCESS_TOKEN against $TESSER_AUTH_URL (audience $TESSER_AUDIENCE)...
+# One block — env vars + $ACCESS_TOKEN don't persist across calls (see SKILL.md Phase 0 step 2):
+source "<skill>/scripts/dotenv.sh" && load_openfx_env sandbox && mint_tesser_token   # `prod` for production
 curl -sS -X POST "$TESSER_BASE_URL/v1/organizations/secrets" \
   -H "authorization: Bearer $ACCESS_TOKEN" -H "x-api-client: true" \
   -H 'content-type: application/json' \

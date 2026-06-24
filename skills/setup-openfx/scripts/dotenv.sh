@@ -13,6 +13,13 @@
 #                                           Defaults to sandbox. Returns non-zero (exporting nothing
 #                                           sensitive) if a base/auth URL override points off the
 #                                           Tesser/Auth0 allowlist, or if Tesser creds are missing.
+#   mint_tesser_token                       Mint an Auth0 client-credentials token from the loaded creds
+#                                           and export ACCESS_TOKEN. Run load_openfx_env FIRST.
+#
+# ⚠️ Exported vars do NOT persist across shells. Agent harnesses run each Bash call in a fresh shell,
+# so EVERY command block that hits the Tesser API must re-establish state at the top:
+#     source "<this dir>/dotenv.sh" && load_openfx_env <sandbox|prod> && mint_tesser_token
+# (Skipping the reload is why a token mint can fail with an empty $TESSER_AUTH_URL.)
 #
 # WHY NOT `set -a; . ./.env.local`?  Sourcing a file executes it. A dotenv-shaped file in the working
 # dir (.env.local, tesser-credentials*.env) could then run arbitrary shell — code execution from a
@@ -149,4 +156,23 @@ load_openfx_env() {
   [ -n "$ws" ] && export OPENFX_WEBHOOK_SECRET="$ws"
 
   return 0
+}
+
+# Mint a Tesser API access token (Auth0 client-credentials) and export ACCESS_TOKEN. Requires
+# load_openfx_env to have run FIRST in this same shell — it uses the exported $TESSER_AUTH_URL /
+# $TESSER_AUDIENCE / $TESSER_API_KEY / $TESSER_API_SECRET. The request shape matches the Tesser
+# backend's documented Auth0 flow (apps/backend/src/common/openapi.config.ts).
+mint_tesser_token() {
+  if [ -z "${TESSER_AUTH_URL:-}" ] || [ -z "${TESSER_AUDIENCE:-}" ] \
+     || [ -z "${TESSER_API_KEY:-}" ] || [ -z "${TESSER_API_SECRET:-}" ]; then
+    echo "setup-openfx: mint_tesser_token needs load_openfx_env first — TESSER_AUTH_URL/AUDIENCE/creds are unset (env vars do not persist across shells)" >&2
+    return 1
+  fi
+  ACCESS_TOKEN="$(curl -sS --request POST "$TESSER_AUTH_URL" \
+    -H 'content-type: application/json' \
+    -d "$(jq -n --arg id "$TESSER_API_KEY" --arg secret "$TESSER_API_SECRET" --arg aud "$TESSER_AUDIENCE" \
+            '{client_id:$id, client_secret:$secret, audience:$aud, grant_type:"client_credentials"}')" \
+    | jq -r '.access_token // empty')"
+  [ -n "${ACCESS_TOKEN:-}" ] || { echo "setup-openfx: token mint failed (no access_token from $TESSER_AUTH_URL)" >&2; return 1; }
+  export ACCESS_TOKEN
 }
