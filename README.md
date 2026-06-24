@@ -1,14 +1,27 @@
 # Tesser Skills
 
 Agentic skills for onboarding onto and operating the [Tesser Payments
-Platform](https://docs.tesser.xyz). Works in **Claude Code** and **Codex** (and any agent that can read
-a skill file — see [`AGENTS.md`](./AGENTS.md)).
+Platform](https://docs.tesser.xyz). Works in **Claude Code** and **Codex**.
+
+## Quick start
+
+Paste this into **Claude Code or Codex** (works in either):
+
+```text
+Install the Tesser setup-openfx skill: clone https://github.com/tesser-payments/skills into
+~/.tesser-skills, then follow the "Install" section of ~/.tesser-skills/AGENTS.md for whichever
+agent you are. Tell me to restart when it's done.
+```
+
+The agent reads the repo and installs everything for your tool. Restart the session, then run
+**`/setup-openfx`** (defaults to sandbox; `--prod` for production). You'll need a Tesser workspace API
+key + secret in a `.env.local` first — see [Prerequisites](#prerequisites).
 
 ## Commands
 
 | Command | What it does |
 |---|---|
-| `/setup-openfx` | Connect your **OpenFX** liquidity-provider account to Tesser end-to-end: store OpenFX credentials, register your funding bank and wallet(s), seed the deposit VAN, and verify a deposit. Covers **sandbox/staging** and **production**. |
+| `/setup-openfx` | Connect your **OpenFX** liquidity-provider account to Tesser end-to-end: store OpenFX credentials, register your funding bank and wallet(s), coordinate the deposit VAN, and verify a deposit. Covers **sandbox/staging** and **production**. |
 
 ## Onboarding at a glance
 
@@ -24,46 +37,23 @@ does the Tesser API calls, and one step is Tesser-assisted. The skill walks all 
 | 5 | Discover + seed the deposit VAN | OpenFX dashboard (you) + **Tesser-assisted** (needs Tesser DB access today) |
 | 6 | Create a test deposit | Tesser API (skill) |
 
-## Install
+<details>
+<summary>Install by hand (or Claude Code's native marketplace)</summary>
 
-**Claude Code** — add this repository as a plugin marketplace, then install:
+The [Quick start](#quick-start) prompt is the easy path; the exact steps it follows live in
+[`AGENTS.md`](./AGENTS.md) (clone to `~/.tesser-skills`, then copy `setup-openfx` into your agent's
+skills/prompts dir). Those steps install only the customer-facing `setup-openfx` skill;
+`openfx-van-seeding` is Tesser-internal and intentionally left out.
 
+**Claude Code (native marketplace):**
 ```
-/plugin marketplace add tesser-xyz/skill
+/plugin marketplace add tesser-payments/skills
 /plugin install tesser-skills@tesser-skills
 ```
 
-**Codex** — Codex has no "install from a URL" command (unlike Claude Code's marketplace), so you first
-get the repo locally, then either run it in-repo or register a slash command.
-
-1. **Clone it** (or download the ZIP from GitHub's green **Code** button and unzip):
-   ```bash
-   git clone https://github.com/tesser-xyz/skill.git
-   cd skill
-   ```
-2. **Either** — run it in-repo (simplest). Start Codex from the clone and ask:
-   ```bash
-   codex
-   ```
-   > set up OpenFX on Tesser
-
-   Codex auto-reads this repo's `AGENTS.md`, which points at `skills/setup-openfx/SKILL.md`.
-
-   **Or** — register a reusable `/setup-openfx` slash command (works from any directory). Codex loads
-   custom prompts from `~/.codex/prompts/`:
-   ```bash
-   mkdir -p ~/.codex/prompts
-   printf 'Read and follow the setup-openfx skill at %s/skills/setup-openfx/SKILL.md to onboard an OpenFX account onto Tesser. Default to sandbox; pass --prod for production.\n' "$(pwd)" \
-     > ~/.codex/prompts/setup-openfx.md
-   ```
-   (Run that from inside the clone so `$(pwd)` becomes the absolute path.) Then `/setup-openfx` is
-   available in Codex.
-
-`.codex-plugin/plugin.json` ships a manifest for any future native Codex plugin loader, but it is not
-required for the steps above. See [`AGENTS.md`](./AGENTS.md) for the Claude Code→Codex tool mapping.
-
-**Other agents** — point them at `skills/setup-openfx/SKILL.md` and ask them to "set up OpenFX on
-Tesser." Everything operational is plain `curl` + `jq`.
+**Any other agent:** point it at `skills/setup-openfx/SKILL.md`. Everything operational is plain
+`curl` + `jq`.
+</details>
 
 ## Prerequisites
 

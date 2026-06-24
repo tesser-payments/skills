@@ -1,16 +1,38 @@
 # Tesser Skills — agent guide (Claude Code, Codex, and other harnesses)
 
-This repo is a cross-harness plugin of agentic skills for the [Tesser Payments
-Platform](https://docs.tesser.xyz). The skill content lives in `skills/` and is harness-agnostic; each
-harness loads it through its own manifest.
+Cross-harness plugin of agentic skills for the [Tesser Payments Platform](https://docs.tesser.xyz).
+Skill content lives in `skills/` and is harness-agnostic.
 
-## Harness wiring
+## Install (follow this when asked to install)
 
-| Harness | How to install / invoke |
-|---|---|
-| **Claude Code** | Installs from GitHub directly: `/plugin marketplace add tesser-xyz/skill` → `/plugin install tesser-skills@tesser-skills`. Slash command `/setup-openfx`. |
-| **Codex** | No remote install — `git clone` the repo, then run Codex in it and ask *"set up OpenFX on Tesser"* (Codex auto-reads this `AGENTS.md`), or register a `/setup-openfx` prompt in `~/.codex/prompts/`. Full steps in the README. `.codex-plugin/plugin.json` is a manifest for a future native loader, not required today. |
-| **Other agents** | Read `skills/setup-openfx/SKILL.md` and follow it. |
+Assume this repo is cloned at `~/.tesser-skills`. If it isn't, clone it (or update it):
+
+```bash
+git clone https://github.com/tesser-payments/skills.git ~/.tesser-skills 2>/dev/null \
+  || git -C ~/.tesser-skills pull --ff-only
+```
+
+Then install **only the customer-facing `setup-openfx` skill** for whichever agent you are:
+
+**Claude Code** — copy the skill + command into the personal dirs Claude Code auto-discovers:
+```bash
+mkdir -p ~/.claude/skills ~/.claude/commands
+cp -R ~/.tesser-skills/skills/setup-openfx ~/.claude/skills/
+cp ~/.tesser-skills/commands/setup-openfx.md ~/.claude/commands/setup-openfx.md
+```
+
+**Codex** — register a `/setup-openfx` slash command pointing at the cloned skill:
+```bash
+mkdir -p ~/.codex/prompts
+printf 'Read and follow ~/.tesser-skills/skills/setup-openfx/SKILL.md to onboard an OpenFX account onto Tesser. Default to sandbox; pass --prod for production.\n' \
+  > ~/.codex/prompts/setup-openfx.md
+```
+
+Do **not** install `openfx-van-seeding` (Tesser-internal; see below). Finish by telling the user to
+restart the session so `/setup-openfx` loads.
+
+> Claude Code users can instead use the native marketplace:
+> `/plugin marketplace add tesser-payments/skills` then `/plugin install tesser-skills@tesser-skills`.
 
 ## Skills
 
@@ -23,15 +45,15 @@ harness loads it through its own manifest.
 
 ## Tool-name mapping (skills use Claude Code names)
 
-When a skill says: | use your platform's: |
+| When a skill says | use your platform's |
 |---|---|
 | `Bash` | shell / exec tool |
 | `Read` / `Write` / `Edit` | native file tools |
 | "fetch live docs" / `WebFetch` | your web-fetch tool, **or** `curl` |
 | `Skill` (invoke a skill) | just follow the skill instructions |
 
-Everything operational in `setup-openfx` is plain `curl` + `jq` + `psql`, so it runs the same in any
-harness. The skill has no subagent/parallelism requirements.
+Everything operational in `setup-openfx` is plain `curl` + `jq`, so it runs the same in any harness.
+The skill has no subagent/parallelism requirements.
 
 ## Conventions
 
