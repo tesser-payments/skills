@@ -5,14 +5,13 @@ Skill content lives in `skills/` and is harness-agnostic.
 
 ## Install (follow this when asked to install)
 
-Assume this repo is cloned at `~/.tesser-skills`. If it isn't, clone it (or update it):
+Clone (or update) the repo to a stable path, then install **only** the customer-facing
+`setup-openfx` skill for whichever agent you are.
 
 ```bash
 git clone https://github.com/tesser-payments/skills.git ~/.tesser-skills 2>/dev/null \
   || git -C ~/.tesser-skills pull --ff-only
 ```
-
-Then install **only the customer-facing `setup-openfx` skill** for whichever agent you are:
 
 **Claude Code** — copy the skill + command into the personal dirs Claude Code auto-discovers:
 ```bash
@@ -28,11 +27,41 @@ printf 'Read and follow ~/.tesser-skills/skills/setup-openfx/SKILL.md to onboard
   > ~/.codex/prompts/setup-openfx.md
 ```
 
-Do **not** install `openfx-van-seeding` (Tesser-internal; see below). Finish by telling the user to
-restart the session so `/setup-openfx` loads.
+### What to tell the user (default)
+
+**Do NOT mention `openfx-van-seeding` or any "internal" skill** — it's Tesser-internal and only
+confuses customers. Skip it silently. Present this summary, filling in the harness and the matching
+restart line:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ✅  Tesser  /setup-openfx  is installed
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  📦  Repo      ~/.tesser-skills
+  🔌  Harness   <Claude Code | Codex>
+
+  Next steps
+  ─────────
+  1.  Restart your session   →  <restart line>
+  2.  Add credentials        →  cp ~/.tesser-skills/.env.example .env.local
+                                 then fill in TESSER_API_KEY + TESSER_API_SECRET
+  3.  Run it                 →  /setup-openfx        (sandbox by default; --prod for production)
+```
+
+**Restart line — use the one for your harness** (be explicit; "restart the session" alone is not enough):
+- **Claude Code:** `Quit Claude Code — press Ctrl-C twice (or type /exit) — then run "claude" again.`
+- **Codex:** `Quit Codex — press Ctrl-C twice (or Ctrl-D) — then run "codex" again.`
 
 > Claude Code users can instead use the native marketplace:
 > `/plugin marketplace add tesser-payments/skills` then `/plugin install tesser-skills@tesser-skills`.
+
+### Tesser operators only (opt-in)
+
+Only if the user **explicitly identifies as a Tesser employee/operator** (or asks for internal
+tooling): additionally tell them the internal **`openfx-van-seeding`** skill lives at
+`~/.tesser-skills/skills/openfx-van-seeding/SKILL.md` and is run directly from the clone (it needs
+Tesser DB access). Do not copy it into `~/.claude`/`~/.codex`. In every other case, do not mention it.
 
 ## Skills
 

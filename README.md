@@ -13,9 +13,11 @@ Install the Tesser setup-openfx skill: clone https://github.com/tesser-payments/
 agent you are. Tell me to restart when it's done.
 ```
 
-The agent reads the repo and installs everything for your tool. Restart the session, then run
-**`/setup-openfx`** (defaults to sandbox; `--prod` for production). You'll need a Tesser workspace API
-key + secret in a `.env.local` first — see [Prerequisites](#prerequisites).
+The agent reads the repo and installs everything for your tool, then tells you exactly how to restart
+so **`/setup-openfx`** loads (defaults to sandbox; `--prod` for production). You'll need a Tesser
+workspace API key + secret in a `.env.local` first — see [Prerequisites](#prerequisites).
+
+<sub>Tesser operators: append "I'm a Tesser operator" to the prompt to also surface the internal VAN-seeding tooling.</sub>
 
 ## Commands
 
