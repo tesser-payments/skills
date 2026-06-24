@@ -27,23 +27,39 @@ All share `bankName: "Sandbox Bank"`, `accountNumber: "0000000000"`, `status: ac
 | `name` | the `accountName` (e.g. `"Sandbox MXN Account"`) |
 | `bank_name` | `"Sandbox Bank"` |
 | `bank_account_number` | `"0000000000"` |
-| `bank_swift_code` | the `swiftCode` if present (SWIFT currencies), else omit |
-| `bank_code_type` | per currency — see below |
-| `bank_identifier_code` | per currency — see below |
+| `bank_code_type` | the currency's **domestic rail** — e.g. `ROUTING` (USD), `CLABE` (MXN). See below. |
+| `bank_identifier_code` | the rail identifier (ABA routing #, CLABE, etc.) — **required, non-empty** (API rejects null/empty) |
+| `bank_swift_code` | the bank's SWIFT/BIC if it has one — set it **alongside** the domestic rail (USD sandbox is ROUTING **and** sets `FAKEUSXX`); `null` only when there's no SWIFT (e.g. MXN) |
 | `tenant_id`, `counterparty_id` | `null` |
 
-`bank_code_type` / `bank_identifier_code` per currency:
+> **Use the currency's real domestic rail, not the OpenFX list's `transferType`/`swiftCode`.** The
+> OpenFX source table below is informational; the Tesser bank uses the customer's actual rail values
+> (USD → `ROUTING` + ABA number; MXN → `CLABE`). A SWIFT/BIC goes in `bank_swift_code` when the account
+> has one — it can coexist with a domestic rail (USD sandbox is `ROUTING` **and** sets `FAKEUSXX`).
+>
+> **How the OpenFX match actually works** (per `platform/.../openfx/adapters/openfx.bank-adapter.ts`,
+> read 2026-06-24): Tesser matches the bank to an OpenFX fiat withdrawal address **on the bank
+> `accountNumber`** (`address.accountNumber === effectiveAccountNumber`) — **not** on swift or
+> identifier. And the match runs **at deposit time** (the deposit adapter calls `ensureBankRegistered`
+> during planning), **not** at bank creation and **not** on a timer — so `metadata.openfx` stays empty
+> until the first deposit. (All sandbox accounts share `accountNumber: "0000000000"`, so the match is
+> ambiguous and takes the first record — a sandbox quirk; real prod accounts have distinct numbers.)
+>
+> **⚠️ API limitation (probed 2026-06-24):** `bank_identifier_code` is required/non-empty at create
+> (`banks-1001`), `PATCH {…:null}` → `500 "No values to set"`, and accounts have **no delete** — so
+> `fiat_bank_identifier_code: null` can't be produced via the API. Per the match code above this does
+> **not** affect matching (account-number keyed), but get correct field placement anyway: the swift
+> code goes in `bank_swift_code`.
 
-- **MXN — validated** (a created record that matched OpenFX looked like:
-  `fiat_bank_code_type: "CLABE"`, `fiat_bank_identifier_code: "111"`): use
-  `bank_code_type: "CLABE"`, `bank_identifier_code: "111"`.
-- **USD / AED / GBP / EUR** (SWIFT): `bank_code_type: "SWIFT"`, `bank_identifier_code: "<swiftCode>"`
-  (`FAKEUSXX`). **USD create verified live 2026-06-24** (accepted, stored correctly). The OpenFX
-  **match is async** — `metadata.openfx` is empty right after create and populates later (the MXN
-  example matched ~18 min post-create), so don't treat empty metadata as failure.
-- **AUD / BRL / PHP** (NPP / PIX / PESONET): code type **not yet validated** in sandbox. Attempt the
-  rail-appropriate type, read the API response, and correct from its error if rejected. Prefer **MXN**
-  for a known-good sandbox run.
+`bank_code_type` / `bank_identifier_code` / `bank_swift_code` per currency:
+
+- **USD — validated 2026-06-24:** `bank_code_type: "ROUTING"`, `bank_identifier_code: "021000021"`
+  (a valid ABA routing number), **and** `bank_swift_code: "FAKEUSXX"`. US uses the **ROUTING** rail
+  **and** also carries the SWIFT/BIC — set all three. Created live (`33980dc4`).
+- **MXN — validated:** `bank_code_type: "CLABE"`, `bank_identifier_code: "111"`, `bank_swift_code: null`.
+- **AED / GBP / EUR / AUD / BRL / PHP:** use that currency's domestic rail + identifier (and a
+  `bank_swift_code` only if it's genuinely a SWIFT bank). **Not yet validated** — confirm the real
+  values with the team. Prefer **USD** or **MXN** for a known-good sandbox run.
 
 > The known-working Tesser record (MXN) for reference — note `metadata.openfx.matchedAt` +
 > `fiatWithdrawalAddressId` appear once Tesser matches the bank to the OpenFX fiat withdrawal address:

@@ -39,7 +39,7 @@ does the Tesser API calls, and one step is Tesser-assisted. The skill walks all 
 | 3 | Store the OpenFX credential bundle | Tesser API — **you run** the generated call (private key never leaves your hands) |
 | 4 | Register funding bank + wallet(s) | Tesser API (skill) **and** OpenFX dashboard (you). **Production reviews these.** |
 | 5 | Discover + seed the deposit VAN | OpenFX dashboard (you) + **Tesser-assisted** (needs Tesser DB access today) |
-| 6 | Create a test deposit | Tesser API (skill) |
+| 6 | Test a deposit — first fiat→fiat (e.g. USD→USD), then fiat→USDC | Tesser API creates it; **you** trigger the funds: OpenFX dashboard *simulate* (sandbox) or a *real wire* (prod) |
 
 <details>
 <summary>Install by hand (or Claude Code's native marketplace)</summary>
@@ -100,9 +100,10 @@ Same flow, with these production-only additions (the skill flags each):
 
 Two pieces are not yet self-serve — the skill calls them out and tells you what to do:
 
-- **Deposit completion is blocked pending a Tesser platform change.** The OpenFX webhook route is not
-  deployed (returns 404 in both production and sandbox), so a deposit plans but does not complete yet.
-  Onboarding (credentials, accounts, VAN) still completes; **contact Tesser** about deposit timing.
+- **Deposits are validated in sandbox; production delivery unconfirmed.** As of 2026-06-24, sandbox
+  deposits complete end-to-end (fiat→fiat and fiat→USDC on-ramp). The OpenFX webhook route that
+  previously 404'd is resolved in sandbox; **confirm it's deployed in production** before relying on
+  prod deposit completion.
 - **VAN registration is Tesser-assisted.** There's no public API for it yet — you discover the VAN
   details on the OpenFX dashboard and hand them to Tesser, who seeds it for your workspace. (The
   seeding itself is a Tesser-internal operation; the `openfx-van-seeding` skill in this repo is for

@@ -133,11 +133,10 @@ e.g. sandbox → `https://sandbox.tesserx.co/v1/webhooks/openfx/<workspaceId>`. 
 dashboard create a webhook with **All Events** pointed at that URL, copy the **Signing Key** it
 returns, and add it to `.env.local` as `OPENFX_WEBHOOK_SECRET=<paste>`.
 
-> **⚠️ BLOCKER — both environments (probed 2026-06-23):** that webhook route returns **404 on both
-> prod (`api.tesser.xyz`) and sandbox** (Circle's equivalent returns 401), so OpenFX deliveries 404
-> and deposits stall after planning until platform ships `/v1/webhooks/openfx/{workspaceId}`.
-> Registering the webhook still yields the Signing Key you need now. See
-> `references/openfx-dashboard-steps.md`.
+> **Webhook route status:** 404'd on both prod and sandbox when probed 2026-06-23, but **sandbox
+> deposits completed end-to-end on 2026-06-24** (deliveries now processed) — the sandbox route is
+> resolved. **Production delivery still to be confirmed.** Either way, register the webhook here to
+> obtain the Signing Key. See `references/openfx-dashboard-steps.md`.
 
 ### Phase 2 — Store the OpenFX credentials with Tesser (GENERATE ONLY — developer runs it)
 
@@ -162,6 +161,11 @@ Confirm success (developer pastes back the masked value) before continuing.
 
 The funding bank must exist on **both** sides with the **same exact values** — Tesser matches your
 registered bank against an OpenFX-registered fiat account, so any field mismatch breaks the match.
+
+> **One funding bank per workspace.** A second `POST /v1/accounts/banks` returns
+> `400 accounts-3001` ("A workspace-level bank account already exists. Only one is allowed per
+> workspace."). Accounts are **`GET`/`PATCH` only — no delete** (`/v1/accounts/{id}`), so to change
+> the funding bank (e.g. switch currency) you `PATCH` the existing one, not create another.
 
 - **🅢 Sandbox/staging:** ask the developer **which currency** they want, then register the matching
   pre-seeded sandbox bank with Tesser (`POST {BASE_URL}/v1/accounts/banks`) using the values in
@@ -202,26 +206,47 @@ them to their Tesser contact, who **seeds** the VAN row.
 - **🅟 Production:** VAN discovery may be gated behind source-bank acceptance (Phase 3) — revisit once
   cleared.
 
-### Phase 6 — Deposit & verify
+### Phase 6 — Test a deposit (two steps, in order)
 
-With creds stored (2), bank registered/accepted (3), wallets registered if needed (4), and the VAN
-seeded (5):
+Prereqs: creds stored (2), funding bank registered (3) — with an `account_number` matching an OpenFX
+fiat withdrawal address (Tesser matches **on account number, at deposit time** — `metadata.openfx`
+won't populate before this), VAN seeded (5), and — for an on-ramp to chain — a destination wallet (4).
+Run **two deposits in order**, and confirm the first before attempting the second:
 
+1. **Step A — fiat → same fiat** (e.g. **USD → USD**): lands fiat in the OpenFX ledger, no swap.
+   Proves the wire → VAN → ledger plumbing before adding complexity.
+2. **Step B — fiat → USDC** (e.g. **USD → USDC**): adds the on-ramp (swap to stablecoin). Only after
+   Step A confirms.
+
+Create the deposit — `<currency>` is your funding-bank currency; `to.currency` is the **same fiat**
+for Step A or `USDC` for Step B; `to.account_id` is the OpenFX Ledger (or a wallet for on-ramp-to-chain):
 ```bash
 curl -sS -X POST "{BASE_URL}/v1/treasury/deposits" \
   -H "authorization: Bearer $ACCESS_TOKEN" -H "x-api-client: true" -H "content-type: application/json" \
   -d '{ "desired": {
-          "from": { "account_id": "<funding-bank-id>", "amount": "1000", "currency": "MXN" },
-          "to":   { "account_id": "<dest-wallet-or-ledger-id>", "currency": "USDC", "network": "<network>" } } }' | jq .
+          "from": { "account_id": "<funding-bank-id>", "amount": "<amount>", "currency": "<currency>" },
+          "to":   { "account_id": "<openfx-ledger-id>", "currency": "<same-fiat | USDC>" } } }' | jq .
 ```
+Then `GET /v1/treasury/deposits/{id}` (planned steps) and `…/{id}/instructions` (the VAN wire details).
+
+**Trigger the inbound funds** (the manual step that actually starts the flow):
+- **🅢 Sandbox/staging:** in the **OpenFX dashboard → Balances → Deposit funds**, **simulate** a mock
+  deposit for that currency/amount — it fires the `deposits` webhook like a real wire. (There is **no
+  Tesser-side simulate** for OpenFX; `/v1/treasury/deposits/{id}/simulate` is Circle-only.)
+- **🅟 Production:** send a **real transfer/wire** to the VAN details from `…/{id}/instructions`.
+
+OpenFX then fires the `deposits` webhook → Tesser credits the ledger (Step A complete) → for Step B the
+swap runs (and, to a wallet, the on-chain withdrawal follows). Confirm via `GET /v1/treasury/deposits/{id}`
+reaching completion and the OpenFX ledger balance, **before** moving from Step A to Step B.
+
 - `amount` must clear OpenFX's per-currency minimum (e.g. **MXN ≥ 1000**) or `/trade` 400s.
-- `network`: sandbox uses testnets (e.g. `BASE_SEPOLIA`); production uses mainnets (`BASE`, etc.). For
-  ledger-only pre-fund, set `to` to the OpenFX ledger and the same fiat currency (no on-ramp).
-- Then `GET /v1/treasury/deposits/{id}` (4 planned steps) and `…/{id}/instructions` (VAN wire details).
-- Funds wired to the VAN → OpenFX fires the `deposits` webhook → Tesser credits → swap → withdrawal.
-- **Both environments:** completion is currently blocked until the OpenFX webhook gateway route ships
-  (Phase 1 BLOCKER — 404 in prod *and* sandbox). `/v1/treasury/deposits/{id}/simulate` does **not**
-  help — it's Circle-only, OpenFX has no simulate.
+- On-ramp **to a self-custodial wallet**: set `to.account_id` to the wallet and add `"network"`
+  (sandbox testnets e.g. `BASE_SEPOLIA`; prod mainnets e.g. `BASE`).
+- **✅ Validated end-to-end in sandbox (2026-06-24):** Step A (USD→USD) and Step B (USD→USDC, with the
+  swap leg) both reached `completed` — `100 USD → 99.9925 USDC`, all steps `completed`. The webhook
+  that 404'd on 2026-06-23 is now delivered/processed in sandbox. **Production delivery still to be
+  confirmed.** `/v1/treasury/deposits/{id}/simulate` remains Circle-only (OpenFX uses the dashboard
+  simulate / a real wire).
 
 ## Error handling
 
@@ -234,7 +259,7 @@ curl -sS -X POST "{BASE_URL}/v1/treasury/deposits" \
 | Malformed PEM | Fix `-----BEGIN/END … PRIVATE KEY-----` markers and `\n` |
 | Deposit `DEPOSIT_VAN_NOT_FOUND` | VAN not seeded for this workspace+currency (Phase 5) |
 | 🅟 Deposit won't plan/settle | Source bank not yet **accepted** by OpenFX (Phase 3) |
-| Webhook never arrives / deposit stalls (both envs) | Gateway OpenFX webhook route not deployed — 404 in prod and sandbox (Phase 1) |
+| Deposit stalls after planning (steps stuck `created`) | OpenFX webhook not being delivered. Sandbox route resolved 2026-06-24 (deposits complete); if it recurs, confirm `/v1/webhooks/openfx/{workspaceId}` is deployed for the env (prod unconfirmed) |
 | Offline (can't fetch live docs) | Proceed with embedded secrets contract; verify account shapes when back online |
 
 ## References

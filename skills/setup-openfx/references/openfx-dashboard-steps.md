@@ -76,14 +76,11 @@ OpenFX dashboard → **API Keys & Webhooks** → **Webhooks** tab → **Create W
   a valid absolute URL; keep the **`/v1`** prefix — the handler is routed via the gateway only under
   `/v1`, so a missing `/v1` is a 404).
 
-  > **⚠️ BLOCKER — route missing in BOTH environments (probed 2026-06-23):** `POST /v1/webhooks/openfx`
-  > and `…/{workspaceId}` return **404 on both `api.tesser.xyz` (prod) and `sandbox.tesserx.co`**,
-  > while Circle's equivalent returns 401 in both. The gateway lacks the
-  > `/v1/webhooks/openfx/{workspaceId}` route that Circle has (`/v1/webhooks/circle/{organizationId}`).
-  > This **contradicts the prod runbook's claim that the route is live** — the probe says otherwise.
-  > Platform must add and deploy that gateway route (mirroring Circle) in **both** environments. You
-  > can still create the webhook now to capture the Signing Key, but OpenFX deliveries will 404 — so
-  > deposits stall after planning until the route ships.
+  > **Webhook route status:** when probed 2026-06-23 this route 404'd on both `api.tesser.xyz` and
+  > `sandbox.tesserx.co` (Circle's returned 401), suggesting it wasn't deployed. As of **2026-06-24,
+  > sandbox deposits complete end-to-end**, so the sandbox route is now delivering. **Production
+  > delivery is still unconfirmed** — verify before relying on prod. Register the webhook here
+  > regardless, to capture the Signing Key.
 
 - **Webhook Event**: **All Events (Deposits, Withdrawals)**.
 - Save, then **copy the Signing Key** (`sandbox_…`) and add it to `.env.local` as
