@@ -9,9 +9,13 @@ developer's OpenFX account to Tesser.
 
 Arguments passed to this command: `$ARGUMENTS`
 
-- Target environment defaults to **sandbox** (`--staging` is an alias for sandbox — same environment).
-- If `--prod` appears in the arguments, target **production** — and confirm explicitly with the
-  developer before issuing any write (credential registration or account creation).
+- **If no `--staging`/`--prod` flag is given, ask the developer which environment** (sandbox/staging or
+  production) as the first step — don't default. `--staging` is an alias for sandbox (same environment).
+- If `--staging` or `--prod` is present, take it as the answer and confirm it back. For `--prod`,
+  confirm explicitly with the developer again before issuing any write (credential registration or
+  account creation).
 
-Do not skip the skill's preflight checks, and never execute the credential-write call on the
-developer's behalf — that step is generate-only by design (see the skill).
+Do not skip the skill's preflight checks. Follow the skill's execution model: in **sandbox/staging**
+it runs the onboarding API calls (including the credential write), but **previews each write and waits
+for the developer's go-ahead** first; in **production** the credential write is generate-only (the
+developer runs it) and other writes require explicit confirmation (see the skill).

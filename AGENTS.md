@@ -34,11 +34,9 @@ ln -sfn ~/.tesser-skills/skills/setup-openfx ~/.agents/skills/setup-openfx
 > (Claude Code users who specifically want a `/setup-openfx` slash command can use the native
 > marketplace instead — see the note below.)
 
-### What to tell the user (default)
+### What to tell the user
 
-**Do NOT mention `openfx-van-seeding` or any "internal" skill** — it's Tesser-internal and only
-confuses customers. Skip it silently. Present this summary, filling in the harness and the matching
-restart line:
+Present this summary, filling in the harness and the matching restart line:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -51,8 +49,8 @@ restart line:
   Next steps
   ─────────
   1.  Restart your session   →  <restart line>
-  2.  Add credentials        →  cp ~/.tesser-skills/.env.example .env.local
-                                 then fill in TESSER_API_KEY + TESSER_API_SECRET
+  2.  Add credentials        →  download your Tesser API keys (dashboard → Settings → API keys)
+                                 into your working dir; the skill creates .env.local for you
   3.  Run it                 →  <invoke line>        (sandbox by default; --prod for production)
 ```
 
@@ -71,21 +69,15 @@ use the native marketplace install (below).
 > Claude Code users can instead use the native marketplace:
 > `/plugin marketplace add tesser-payments/skills` then `/plugin install tesser-skills@tesser-skills`.
 
-### Tesser operators only (opt-in)
-
-Only if the user **explicitly identifies as a Tesser employee/operator** (or asks for internal
-tooling): additionally tell them the internal **`openfx-van-seeding`** skill lives at
-`~/.tesser-skills/skills/openfx-van-seeding/SKILL.md` and is run directly from the clone (it needs
-Tesser DB access). Do not copy it into `~/.claude`/`~/.codex`. In every other case, do not mention it.
-
 ## Skills
 
 - **`setup-openfx`** — onboard an OpenFX liquidity-provider account onto Tesser (credentials, bank +
   wallet registration, VAN coordination, deposit verification). Covers **sandbox/staging** and
   **production**. Customer-facing. See `skills/setup-openfx/SKILL.md`.
-- **`openfx-van-seeding`** — 🔒 **Tesser employees only.** Internal operations step to seed a
-  customer's OpenFX VAN; requires Tesser DB access. Not for customers/integrators. See
-  `skills/openfx-van-seeding/SKILL.md`.
+
+VAN seeding is a Tesser-internal, DB-level operation handled by Tesser staff out of band — it is not
+part of this repo. Customers just supply their workspace + currency (sandbox) or the OpenFX-provided
+VAN details (production) to their Tesser contact; see `setup-openfx` Phase 5.
 
 ## Tool-name mapping (skills use Claude Code names)
 

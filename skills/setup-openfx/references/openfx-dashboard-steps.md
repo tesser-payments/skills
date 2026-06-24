@@ -33,25 +33,13 @@ into the working directory** where you're running the skill (next to `.env.local
 so it won't be committed — but it holds the ES256 private key, so keep it private and delete it when
 done.
 
-The skill then parses three of the four values out of it into `.env.local` (do not echo the private
-key):
-
-```bash
-KEYFILE=$(ls OpenFX_api-key_*.json 2>/dev/null | head -1)
-# UPSERT (replaces existing or empty-placeholder lines; safe to re-run)
-touch .env.local
-grep -vE '^OPENFX_(ORG_ID|API_KEY|PRIVATE_KEY)=' .env.local > .env.local.tmp
-{
-  printf 'OPENFX_ORG_ID=%s\n'      "$(jq -r .orgId "$KEYFILE")"     # → OPENFX_ORG_ID
-  printf 'OPENFX_API_KEY=%s\n'     "$(jq -r .id "$KEYFILE")"        # → OPENFX_API_KEY (sandbox_-prefixed)
-  printf 'OPENFX_PRIVATE_KEY=%s\n' "$(jq -c .privateKey "$KEYFILE")" # → OPENFX_PRIVATE_KEY (PEM, one \n-escaped line)
-} >> .env.local.tmp
-mv .env.local.tmp .env.local
-```
-
-The file also carries `name` (`org/{org-id}/apiKey/{api-key-id}`, OpenFX's JWT subject), `publicKey`,
-`scope`, etc. — ignore them. The fourth value, `OPENFX_WEBHOOK_SECRET`, is **not** in the file; it
-comes from Step 2.
+The values are read automatically when the skill runs `load_openfx_env` — the helper
+(`scripts/dotenv.sh`) reads them with `jq` from the key file: `orgId`→`OPENFX_ORG_ID`,
+`id`→`OPENFX_API_KEY`, `privateKey`→`OPENFX_PRIVATE_KEY` (via **`jq -r`**, so the runtime value is a
+real PEM). **Do not parse it by hand** — re-run `load_openfx_env`
+(SKILL.md Phase 1a), which reads the JSON with `jq` rather than executing anything. The file's other
+fields (`name`, `publicKey`, `scope`, …) are ignored. The fourth value, `OPENFX_WEBHOOK_SECRET`, is
+**not** in the file; it comes from Step 2.
 
 > Auth model (context): OpenFX is called with a **self-signed ES256 JWT** (2-minute TTL, one per
 > request), plus headers `x-api-key: <OPENFX_API_KEY>` and `x-app-mode: SANDBOX`. Tesser does this
@@ -105,8 +93,7 @@ the dashboard. The same bank is also registered with Tesser (skill Phase 3, `POS
   acceptance). Don't run a deposit until it clears.
 - **🅢 Sandbox/staging:** nothing to do here — the pre-seeded sandbox banks
   (`references/sandbox-bank-accounts.md`) already exist on the OpenFX side; you just register the
-  matching one with Tesser (skill Phase 3). An operator may also stub the source bank's
-  `fiat_bank_identifier_code` for the deposit webhook lazy-match (internal `openfx-van-seeding` skill).
+  matching one with Tesser (skill Phase 3). Tesser handles the sandbox source-bank match on its side.
 
 ## Step 4 — Register destination wallet(s) on OpenFX (wallet flows only)
 
@@ -121,6 +108,7 @@ registered with Tesser (skill Phase 4, `POST /v1/accounts/wallets`).
 
 ## Handing values to the skill
 
-Provide `orgId`, `apiKey`, `privateKey`, and `webhookSecret` back to the agent for Phase 2. Keep the
-private key out of shared logs; the agent places it into the **generate-only**
-`POST /v1/organizations/secrets` command for you to run.
+`load_openfx_env` exports the four values (the key-file values via `jq`; the webhook secret from the
+`OPENFX_WEBHOOK_SECRET` line set in Phase 1b). In **sandbox/staging** the agent then runs the
+`POST /v1/organizations/secrets` write itself after previewing it and getting your go-ahead (Phase 2);
+in **production** it's generate-only — the agent hands you the command to run.

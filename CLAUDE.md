@@ -17,10 +17,15 @@ commands/
 skills/
   setup-openfx/      # customer-facing onboarding procedure (sandbox/staging + production)
     SKILL.md
+    scripts/         # dotenv.sh — trusted credential loader (parses, never sources; host allowlist)
+    templates/       # env.local.template — plain KEY=value data file
     references/      # progressive-disclosure docs: openfx-dashboard-steps · tesser-secrets-endpoint · live-sources
-  openfx-van-seeding/ # 🔒 Tesser-internal: seed a customer's VAN (needs DB access; not for customers)
-    SKILL.md
 ```
+
+> **VAN seeding is intentionally not in this repo.** It is a Tesser-internal, DB-level operation
+> handled by staff out of band; the customer-facing flow only has the developer hand their workspace +
+> currency (sandbox) or OpenFX-provided VAN details (production) to their Tesser contact. Keep any
+> seeding tooling in a separate internal repo — never ship it in this customer-facing clone.
 
 ## Authoring principles
 
@@ -32,8 +37,10 @@ skills/
   the manual OpenFX-dashboard steps.
 - **Skill steers, the platform executes.** The skill supplies judgment and procedure. v1 executes via
   curl/SDK; MCP-first execution (for the non-secret steps) is a planned fast-follow.
-- **Never auto-run the credential write.** `POST /v1/organizations/secrets` is generate-only — the
-  developer runs it with their own token. See `skills/setup-openfx/references/tesser-secrets-endpoint.md`.
+- **Credential write is environment-conditional.** In sandbox/staging the skill runs
+  `POST /v1/organizations/secrets` itself; in production it stays **generate-only** (the developer runs
+  it with their own token). Never auto-run a production write. See
+  `skills/setup-openfx/references/tesser-secrets-endpoint.md`.
 
 ## Source-of-truth hierarchy
 

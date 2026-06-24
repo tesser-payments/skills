@@ -7,44 +7,26 @@ it lives here. Verify against the backend source if behavior seems off:
 `platform/apps/backend/src/organizations/` (`organizations.controller.ts`, `organizations.zod-dto.ts`,
 `organization-secrets.constants.ts`, `organizations.service.ts`).
 
-## Why generate-only
+## Execution: sandbox runs after a confirm, production generate-only
 
-The developer runs this call themselves with their own workspace token to write their own OpenFX
-credentials. The agent must **not** execute it — the ES256 private key is highly sensitive and the
-endpoint is deliberately unadvertised.
+- **Sandbox/staging:** the agent runs this call itself once the values are loaded — but **previews it
+  and gets the developer's go-ahead first** (one line: `POST /v1/organizations/secrets`, "stores your
+  OpenFX credential bundle"; never show the key). No copy-paste for the developer; just approval.
+- **Production:** **generate-only.** The developer runs it themselves with their own workspace token;
+  the agent must **not** execute it in production — the ES256 private key is highly sensitive and the
+  endpoint is deliberately unadvertised.
 
-## Request (A) — read straight from the downloaded key JSON (recommended)
+## Request — from the `.env.local` values
 
-Three of the four values live in the API-key JSON you downloaded from the OpenFX dashboard
-(`orgId`, `id`, `privateKey`); only the webhook signing secret comes from the webhook step. Reading
-them with `jq --slurpfile` means nothing sensitive is typed. Works the same in sandbox and prod (set
-`BASE_URL`/`ACCESS_TOKEN` for the chosen environment).
-
-```bash
-OFX_JSON="$HOME/Downloads/OpenFX_api-key_<uuid>.json"   # the downloaded key file
-WEBHOOK_SECRET="<paste-from-webhook-step>"
-
-PAYLOAD=$(jq -nc --slurpfile f "$OFX_JSON" --arg ws "$WEBHOOK_SECRET" \
-  '{ provider:"OPENFX", key:"OPENFX_CREDENTIALS",
-     value:{ orgId:$f[0].orgId, apiKey:$f[0].id, privateKey:$f[0].privateKey, webhookSecret:$ws } }')
-
-# sanity-check the payload parses (the privateKey has newlines):
-printf '%s' "$PAYLOAD" | jq empty && echo ok
-
-curl -sS -X POST "$BASE_URL/v1/organizations/secrets" \
-  -H "authorization: Bearer $ACCESS_TOKEN" -H "x-api-client: true" -H "content-type: application/json" \
-  -d "$PAYLOAD" | jq .
-```
-
-> **`apiKey` ← the JSON `id` field** (the API-key identifier). In sandbox that value carries the
-> `sandbox_` prefix; store it as-is. `orgId` ← JSON `orgId`, `privateKey` ← JSON `privateKey`.
-
-## Request (B) — from `.env.local` vars (if you don't have the JSON file handy)
+`load_openfx_env` exports all four values (set up by the skill's helper — see SKILL.md Phase 0–1b;
+`OPENFX_PRIVATE_KEY` is a real PEM via `jq -r`). Load via the helper (which parses the files rather
+than executing them, and pins `$TESSER_BASE_URL`/`$TESSER_AUTH_URL` to the allowlist), then post —
+nothing sensitive is typed, and `jq -n --arg` JSON-encodes the PEM's newlines correctly:
 
 ```bash
-# Source creds without echoing them:  set -a; . ./.env.local; set +a
-# Needs: OPENFX_ORG_ID, OPENFX_API_KEY, OPENFX_PRIVATE_KEY, OPENFX_WEBHOOK_SECRET, ACCESS_TOKEN, BASE_URL
-curl -sS -X POST "$BASE_URL/v1/organizations/secrets" \
+load_openfx_env sandbox          # or `prod`; exports OPENFX_* + TESSER_* incl. validated $TESSER_BASE_URL/$TESSER_AUTH_URL
+# ...mint $ACCESS_TOKEN against $TESSER_AUTH_URL (audience $TESSER_AUDIENCE)...
+curl -sS -X POST "$TESSER_BASE_URL/v1/organizations/secrets" \
   -H "authorization: Bearer $ACCESS_TOKEN" -H "x-api-client: true" \
   -H 'content-type: application/json' \
   -d "$(jq -n \
@@ -53,6 +35,9 @@ curl -sS -X POST "$BASE_URL/v1/organizations/secrets" \
     { provider: "OPENFX", key: "OPENFX_CREDENTIALS",
       value: { orgId: $orgId, apiKey: $apiKey, privateKey: $privateKey, webhookSecret: $webhookSecret } }')"
 ```
+
+> Mapping (handled by `.env.local`): `apiKey` ← JSON `id` (sandbox value carries the `sandbox_`
+> prefix; stored as-is), `orgId` ← JSON `orgId`, `privateKey` ← JSON `privateKey`.
 
 The literal-value shape, for reference only (do **not** paste real secrets inline — they land in
 shell history):
