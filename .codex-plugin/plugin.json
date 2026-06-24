@@ -1,0 +1,21 @@
+{
+  "name": "tesser-skills",
+  "version": "0.1.0",
+  "description": "Agentic skills for onboarding onto and operating the Tesser Payments Platform. Includes setup-openfx for connecting an OpenFX liquidity-provider account (sandbox/staging and production).",
+  "author": {
+    "name": "Tesser",
+    "email": "engineering@tesser.xyz"
+  },
+  "homepage": "https://docs.tesser.xyz",
+  "repository": "https://github.com/tesser-xyz/skill",
+  "license": "UNLICENSED",
+  "keywords": [
+    "tesser",
+    "payments",
+    "stablecoin",
+    "openfx",
+    "onboarding",
+    "liquidity-provider"
+  ],
+  "skills": "./skills/"
+}
