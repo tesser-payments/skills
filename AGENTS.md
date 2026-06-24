@@ -13,21 +13,26 @@ git clone https://github.com/tesser-payments/skills.git ~/.tesser-skills 2>/dev/
   || git -C ~/.tesser-skills pull --ff-only
 ```
 
-**Claude Code** — copy the skill + command into the personal dirs Claude Code auto-discovers:
+Both harnesses discover **skills** in a personal skills directory, so the install is the *same shape*
+in each — symlink the cloned skill into that dir (the symlink means `git pull` keeps it current). Only
+the directory differs:
+
+**Claude Code** → `~/.claude/skills/`:
 ```bash
-mkdir -p ~/.claude/skills ~/.claude/commands
-cp -R ~/.tesser-skills/skills/setup-openfx ~/.claude/skills/
-cp ~/.tesser-skills/commands/setup-openfx.md ~/.claude/commands/setup-openfx.md
+mkdir -p ~/.claude/skills
+ln -sfn ~/.tesser-skills/skills/setup-openfx ~/.claude/skills/setup-openfx
 ```
 
-**Codex** — install as a native user skill (Codex discovers skills under `~/.agents/skills/`).
-Symlink it so `git pull` in the clone keeps it current:
+**Codex** → `~/.agents/skills/`:
 ```bash
 mkdir -p ~/.agents/skills
 ln -sfn ~/.tesser-skills/skills/setup-openfx ~/.agents/skills/setup-openfx
 ```
-> Do **not** use `~/.codex/prompts/` for this. A file there is invoked as the namespaced
-> `/prompts:setup-openfx`, not a top-level `/setup-openfx` — the skills dir above is the correct route.
+
+> Don't use `~/.codex/prompts/` (Codex) or `~/.claude/commands/` (Claude Code) for this — those are a
+> different, non-symmetric "command/prompt" mechanism. The skills dir above is the right, uniform route.
+> (Claude Code users who specifically want a `/setup-openfx` slash command can use the native
+> marketplace instead — see the note below.)
 
 ### What to tell the user (default)
 
@@ -56,8 +61,12 @@ the invocation differs by tool and "restart the session" alone isn't enough:
 
 | Harness | Restart line | Invoke line |
 |---|---|---|
-| **Claude Code** | `Quit Claude Code — Ctrl-C twice (or /exit) — then run "claude" again.` | `/setup-openfx` |
-| **Codex** | `Quit Codex — Ctrl-C twice (or Ctrl-D) — then run "codex" again.` | `$setup-openfx`  (or open `/skills` and choose **setup-openfx**) |
+| **Claude Code** | `Quit Claude Code — Ctrl-C twice (or /exit) — then run "claude" again.` | `Say: "set up OpenFX on Tesser" (the skill triggers automatically).` |
+| **Codex** | `Quit Codex — Ctrl-C twice (or Ctrl-D) — then run "codex" again.` | `Type $setup-openfx (or open /skills), or say "set up OpenFX on Tesser".` |
+
+Both invoke the same way by intent — *"set up OpenFX on Tesser"* triggers the skill in either tool.
+Codex adds the `$setup-openfx` / `/skills` shortcuts; for a Claude Code `/setup-openfx` slash command,
+use the native marketplace install (below).
 
 > Claude Code users can instead use the native marketplace:
 > `/plugin marketplace add tesser-payments/skills` then `/plugin install tesser-skills@tesser-skills`.

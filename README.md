@@ -13,10 +13,11 @@ Install the Tesser setup-openfx skill: clone https://github.com/tesser-payments/
 agent you are. Tell me to restart when it's done.
 ```
 
-The agent reads the repo and installs the skill for your tool, then tells you exactly how to restart
-and how to invoke it. The invocation differs by harness: **`/setup-openfx`** in Claude Code,
-**`$setup-openfx`** (or the `/skills` menu) in Codex. You'll need a Tesser workspace API key + secret
-in a `.env.local` first — see [Prerequisites](#prerequisites).
+The agent clones the repo and installs the skill the same way in either tool (symlinked into your
+agent's skills directory), then tells you how to restart. After restarting, just **ask your agent to
+"set up OpenFX on Tesser"** — the skill triggers in both Claude Code and Codex. (Codex also has the
+`$setup-openfx` / `/skills` shortcuts.) You'll need a Tesser workspace API key + secret in a
+`.env.local` first — see [Prerequisites](#prerequisites).
 
 <sub>Tesser operators: append "I'm a Tesser operator" to the prompt to also surface the internal VAN-seeding tooling.</sub>
 
@@ -74,13 +75,14 @@ skills/prompts dir). Those steps install only the customer-facing `setup-openfx`
 
 ## Usage
 
-Invoke it — `/setup-openfx` in **Claude Code**, or `$setup-openfx` (or the `/skills` menu) in
-**Codex** — with an optional environment argument:
+Invoke it the same way in either tool — **ask your agent to "set up OpenFX on Tesser"** (in Codex you
+can also type `$setup-openfx` or pick it from `/skills`). Mention the environment, which the skill maps
+to its argument:
 
 ```
-setup-openfx            # sandbox (default)
-setup-openfx --staging  # alias for sandbox — "staging" is the sandbox environment
-setup-openfx --prod     # production (you'll confirm before any write)
+"set up OpenFX"            → sandbox (default)
+"set up OpenFX on staging" → sandbox (staging is the sandbox environment)
+"set up OpenFX in prod"    → production (you'll confirm before any write)
 ```
 
 The skill runs read-only checks automatically, asks for confirmation before any write, and — for the

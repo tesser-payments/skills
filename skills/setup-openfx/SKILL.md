@@ -21,11 +21,12 @@ wallets be registered *with OpenFX* (and the bank passes OpenFX review).
 
 ## Tooling (Claude Code and Codex)
 
-This skill is harness-agnostic. In **Claude Code** it's invoked by the `/setup-openfx` command; in
-**Codex** (or any agent) follow this file directly. The steps use Claude Code tool names — map them
-to your platform (see the repo `AGENTS.md`): `Bash` → your shell, `Read`/`Write`/`Edit` → native file
-tools, "fetch live docs" → your web-fetch tool **or** `curl`. Everything operational here is plain
-`curl` + `jq` + `psql`, which works the same everywhere.
+This skill is harness-agnostic. It installs the same way in **Claude Code** (`~/.claude/skills/`) and
+**Codex** (`~/.agents/skills/`) and is invoked the same way — the user asks to "set up OpenFX on
+Tesser" and this skill triggers (Codex also offers `$setup-openfx` / `/skills`). The steps use Claude
+Code tool names — map them to your platform (see the repo `AGENTS.md`): `Bash` → your shell,
+`Read`/`Write`/`Edit` → native file tools, "fetch live docs" → your web-fetch tool **or** `curl`.
+Everything operational here is plain `curl` + `jq`, which works the same everywhere.
 
 ## Operating rules (read first)
 
@@ -59,8 +60,9 @@ tools, "fetch live docs" → your web-fetch tool **or** `curl`. Everything opera
 
 ### Phase 0 — Preflight (auto, read-only)
 
-1. Resolve environment from arguments: sandbox default (`--staging` alias), `--prod` → production
-   (confirm first). Honor `TESSER_*` overrides.
+1. Resolve the target environment from the user's request (or an explicit `--staging`/`--prod`
+   argument): sandbox by default (staging = sandbox); production only when the user says prod / passes
+   `--prod` — confirm before any write. Honor `TESSER_*` overrides.
 2. **Load Tesser credentials without putting them in shell history.** Prefer a gitignored `.env.local`
    sourced in-process (`set -a; . ./.env.local; set +a`), else exported env. Accept
    `TESSER_API_KEY`/`TESSER_API_SECRET` or the demo-style `TESSER_CLIENT_ID`/`TESSER_CLIENT_SECRET`.
