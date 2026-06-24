@@ -15,41 +15,67 @@ wallet(s) (step 4) registered with OpenFX.
 
 ## What you need to produce
 
-| Value (`OPENFX_CREDENTIALS`) | Where it comes from | Notes |
-|---|---|---|
-| `orgId` | API-key JSON, field `orgId` | OpenFX organization UUID |
-| `apiKey` | API-key JSON, field **`id`** | The API-key identifier. Sandbox value carries a `sandbox_` prefix; store as-is (Tesser strips it) |
-| `privateKey` | API-key JSON, field `privateKey` | ES256 **PEM**; signs short-lived OpenFX JWTs. Literal `\n` is fine (normalized server-side) |
-| `webhookSecret` | The webhook **Signing Key** | Produced when you register the webhook (step 2). Sandbox value is prefixed `sandbox_`; store as-is |
+Four values end up in `.env.local`. Three are **auto-parsed from the downloaded key file** (Step 1);
+the webhook secret is **entered by hand** (Step 2).
 
-## Step 1 — Create an API key and download its JSON
+| `.env.local` var | Source | How |
+|---|---|---|
+| `OPENFX_ORG_ID` | key JSON field `orgId` | auto-parsed (Step 1) — OpenFX org UUID |
+| `OPENFX_API_KEY` | key JSON field **`id`** | auto-parsed (Step 1) — sandbox value carries the `sandbox_` prefix; stored as-is |
+| `OPENFX_PRIVATE_KEY` | key JSON field `privateKey` | auto-parsed (Step 1) — ES256 **PEM**, one `\n`-escaped line; normalized server-side |
+| `OPENFX_WEBHOOK_SECRET` | the webhook **Signing Key** | **manual paste** (Step 2); register the webhook to get it |
+
+## Step 1 — Download the API-key file, move it in, and parse it
 
 OpenFX dashboard → **API Keys & Webhooks** → create an API key (sandbox key for sandbox/staging,
-production key for prod). **Download the key's JSON** and save it (e.g.
-`~/Downloads/OpenFX_api-key_<uuid>.json`) — Phase 2 reads it directly. It contains:
-- `orgId` — your OpenFX organization UUID → bundle `orgId`.
-- `id` — the API-key identifier → bundle **`apiKey`** (sandbox value carries the `sandbox_` prefix).
-- `privateKey` — the ES256 PEM private key (downloadable once; keep it secret) → bundle `privateKey`.
-- `name` — of the form `org/{org-id}/apiKey/{api-key-id}` (OpenFX's JWT subject; not stored directly).
+production key for prod). **Download the key's JSON** (named `OpenFX_api-key_*.json`), then **move it
+into the working directory** where you're running the skill (next to `.env.local`). It's gitignored,
+so it won't be committed — but it holds the ES256 private key, so keep it private and delete it when
+done.
+
+The skill then parses three of the four values out of it into `.env.local` (do not echo the private
+key):
+
+```bash
+KEYFILE=$(ls OpenFX_api-key_*.json 2>/dev/null | head -1)
+# UPSERT (replaces existing or empty-placeholder lines; safe to re-run)
+touch .env.local
+grep -vE '^OPENFX_(ORG_ID|API_KEY|PRIVATE_KEY)=' .env.local > .env.local.tmp
+{
+  printf 'OPENFX_ORG_ID=%s\n'      "$(jq -r .orgId "$KEYFILE")"     # → OPENFX_ORG_ID
+  printf 'OPENFX_API_KEY=%s\n'     "$(jq -r .id "$KEYFILE")"        # → OPENFX_API_KEY (sandbox_-prefixed)
+  printf 'OPENFX_PRIVATE_KEY=%s\n' "$(jq -c .privateKey "$KEYFILE")" # → OPENFX_PRIVATE_KEY (PEM, one \n-escaped line)
+} >> .env.local.tmp
+mv .env.local.tmp .env.local
+```
+
+The file also carries `name` (`org/{org-id}/apiKey/{api-key-id}`, OpenFX's JWT subject), `publicKey`,
+`scope`, etc. — ignore them. The fourth value, `OPENFX_WEBHOOK_SECRET`, is **not** in the file; it
+comes from Step 2.
 
 > Auth model (context): OpenFX is called with a **self-signed ES256 JWT** (2-minute TTL, one per
-> request), plus headers `x-api-key: <apiKey>` and `x-app-mode: SANDBOX`. Tesser does this signing
-> for you using the stored `privateKey`; you do not need to mint JWTs during onboarding.
+> request), plus headers `x-api-key: <OPENFX_API_KEY>` and `x-app-mode: SANDBOX`. Tesser does this
+> signing for you using the stored `OPENFX_PRIVATE_KEY`; you do not mint JWTs during onboarding.
 
-## Step 2 — Register the webhook (this produces `webhookSecret`)
+## Step 2 — Register the webhook → paste `OPENFX_WEBHOOK_SECRET`
 
-OpenFX delivers deposit/withdrawal completion via webhooks; without a registered webhook the deposit
-flow stalls after planning. Register it before storing credentials.
+This is the fourth value and the **only one entered by hand** — it isn't in the key file. OpenFX issues
+a Signing Key when you register a webhook, and that key *is* `OPENFX_WEBHOOK_SECRET`. (Without a
+registered webhook the deposit flow also stalls after planning.)
+
+The skill **displays the exact URL to register**, built from the Phase 0 `workspace_id`:
+
+```
+{BASE_URL}/v1/webhooks/openfx/{workspaceId}
+```
+e.g. sandbox → `https://sandbox.tesserx.co/v1/webhooks/openfx/<workspaceId>`  ·  prod →
+`https://api.tesser.xyz/v1/webhooks/openfx/<workspaceId>`.
 
 OpenFX dashboard → **API Keys & Webhooks** → **Webhooks** tab → **Create Webhook**:
-- **Webhook URL**: `{TESSER_BASE_URL}/v1/webhooks/openfx/{workspaceId}` — substitute the Tesser base
-  URL for your environment (sandbox `https://sandbox.tesserx.co`, production `https://api.tesser.xyz`)
-  and your **Tesser workspace UUID** (the skill captures this in Phase 0 from `GET /v1/accounts`
-  → `data[0].workspace_id`). The form shows "Invalid URL" until it's a valid absolute URL.
+- **Webhook URL**: paste the literal URL the skill showed you (the form shows "Invalid URL" until it's
+  a valid absolute URL; keep the **`/v1`** prefix — the handler is routed via the gateway only under
+  `/v1`, so a missing `/v1` is a 404).
 
-  > Note the **`/v1`** prefix — the handler is backend-direct, routed via the gateway only under
-  > `/v1`; a missing `/v1` is a 404.
-  >
   > **⚠️ BLOCKER — route missing in BOTH environments (probed 2026-06-23):** `POST /v1/webhooks/openfx`
   > and `…/{workspaceId}` return **404 on both `api.tesser.xyz` (prod) and `sandbox.tesserx.co`**,
   > while Circle's equivalent returns 401 in both. The gateway lacks the
@@ -60,8 +86,9 @@ OpenFX dashboard → **API Keys & Webhooks** → **Webhooks** tab → **Create W
   > deposits stall after planning until the route ships.
 
 - **Webhook Event**: **All Events (Deposits, Withdrawals)**.
-- Save, then **copy the Signing Key** (`sandbox_…`) — **this is the `webhookSecret`.** Tesser verifies
-  the `x-openfx-signature` header (HMAC-SHA256, base64) against it.
+- Save, then **copy the Signing Key** (`sandbox_…`) and add it to `.env.local` as
+  `OPENFX_WEBHOOK_SECRET=<paste>`. That completes the four `OPENFX_*` values. Tesser verifies the
+  `x-openfx-signature` header (HMAC-SHA256, base64) against it.
 
 Dashboard UI reference (Webhooks tab, then the Create Webhook panel):
 
@@ -74,13 +101,15 @@ OpenFX requires funds movement to be first-party. Register the workspace's **sou
 account deposits wire from) on the OpenFX dashboard. There's **no create-address API** — it's done in
 the dashboard. The same bank is also registered with Tesser (skill Phase 3, `POST /v1/accounts/banks`).
 
-- **🅟 Production — hard gate:** registration goes through OpenFX **review**. Until OpenFX marks the
-  bank **accepted**, deposits will not plan/settle (the deposit flow matches the source bank against an
-  OpenFX-registered account, and VAN discovery in step 5 may be gated behind acceptance). Don't run a
-  deposit until it clears.
-- **🅢 Sandbox/staging:** pre-approve the bank in the dashboard (no formal review). Tesser-side, an
-  operator also stubs the source bank's `fiat_bank_identifier_code = '0000000000'` so the deposit
-  webhook lazy-match lands (part of the internal `openfx-van-seeding` skill).
+- **🅟 Production — hard gate:** add the bank here with the **same exact values you registered with
+  Tesser** (name, bank name, code type, identifier, account number, SWIFT) — Tesser matches the two,
+  so any mismatch breaks it. Registration goes through OpenFX **review**; until the bank is
+  **accepted**, deposits will not plan/settle (and VAN discovery in step 5 may be gated behind
+  acceptance). Don't run a deposit until it clears.
+- **🅢 Sandbox/staging:** nothing to do here — the pre-seeded sandbox banks
+  (`references/sandbox-bank-accounts.md`) already exist on the OpenFX side; you just register the
+  matching one with Tesser (skill Phase 3). An operator may also stub the source bank's
+  `fiat_bank_identifier_code` for the deposit webhook lazy-match (internal `openfx-van-seeding` skill).
 
 ## Step 4 — Register destination wallet(s) on OpenFX (wallet flows only)
 

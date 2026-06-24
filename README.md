@@ -62,16 +62,16 @@ skills/prompts dir). Those steps install only the customer-facing `setup-openfx`
 ## Prerequisites
 
 - **Claude Code or Codex** (or any agent that reads skill files).
-- A Tesser **workspace API key and secret**. Put them in a gitignored **`.env.local`** (not exported)
-  so secrets stay out of your shell history — copy `.env.example`:
-  ```bash
-  cp .env.example .env.local   # then edit it:
-  #   TESSER_API_KEY=...
-  #   TESSER_API_SECRET=...
-  ```
-  The skill sources this file at startup. Exported env vars and the demo-style
-  `TESSER_CLIENT_ID` / `TESSER_CLIENT_SECRET` names also work.
-- An **OpenFX account** with dashboard access (sandbox or production).
+- **Tesser API keys file** — download it from the Tesser dashboard → **Settings → API keys** (a
+  `tesser-credentials*.env` file) and drop it in your working directory. The skill parses
+  `CLIENT_ID`/`CLIENT_SECRET` from it into a gitignored `.env.local` — no copy-paste. (Already have
+  creds? `.env.local` with `TESSER_API_KEY`/`TESSER_API_SECRET`, exported env vars, or demo-style
+  `TESSER_CLIENT_ID`/`TESSER_CLIENT_SECRET` all work too.)
+- **OpenFX API key file** — downloaded from the OpenFX dashboard (Phase 1); the skill parses it the
+  same way. You bring your own OpenFX account.
+
+Both downloaded credential files are gitignored (`*.env`, `OpenFX_api-key_*.json`) — they won't be
+committed. Delete them once onboarding is done.
 
 ## Usage
 

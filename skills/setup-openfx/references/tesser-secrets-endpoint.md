@@ -86,11 +86,13 @@ shell history):
 ## Response
 
 ```json
-{ "success": true, "masked_value": "****abc123" }
+{ "success": true, "maskedValue": "****" }
 ```
 
 Only a masked value is ever returned; the secret is stored encrypted in the Basis Theory vault.
-(The external API is snake_case, so the field is `masked_value`.)
+The field is **`maskedValue`** (camelCase) — this `@ApiInternal()` endpoint's response is excluded from
+the gateway's snake_case conversion (sending `x-api-client: true` does not change it). Verified against
+live sandbox 2026-06-24.
 
 ## Side effects & idempotency
 

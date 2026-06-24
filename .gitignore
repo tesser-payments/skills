@@ -2,3 +2,12 @@
 .env.local
 .env.*.local
 .DS_Store
+
+# OpenFX API key files (downloaded secret bundles — NEVER commit; contain the ES256 private key)
+OpenFX_api-key_*.json
+*.openfx-key.json
+openfx-credentials.json
+
+# Tesser credential files (downloaded from dashboard > Settings > API keys — contain CLIENT_SECRET + signing keys)
+tesser-credentials*.env
+*.env
