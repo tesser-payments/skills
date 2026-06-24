@@ -13,9 +13,10 @@ Install the Tesser setup-openfx skill: clone https://github.com/tesser-payments/
 agent you are. Tell me to restart when it's done.
 ```
 
-The agent reads the repo and installs everything for your tool, then tells you exactly how to restart
-so **`/setup-openfx`** loads (defaults to sandbox; `--prod` for production). You'll need a Tesser
-workspace API key + secret in a `.env.local` first — see [Prerequisites](#prerequisites).
+The agent reads the repo and installs the skill for your tool, then tells you exactly how to restart
+and how to invoke it. The invocation differs by harness: **`/setup-openfx`** in Claude Code,
+**`$setup-openfx`** (or the `/skills` menu) in Codex. You'll need a Tesser workspace API key + secret
+in a `.env.local` first — see [Prerequisites](#prerequisites).
 
 <sub>Tesser operators: append "I'm a Tesser operator" to the prompt to also surface the internal VAN-seeding tooling.</sub>
 
@@ -73,10 +74,13 @@ skills/prompts dir). Those steps install only the customer-facing `setup-openfx`
 
 ## Usage
 
+Invoke it — `/setup-openfx` in **Claude Code**, or `$setup-openfx` (or the `/skills` menu) in
+**Codex** — with an optional environment argument:
+
 ```
-/setup-openfx            # sandbox (default)
-/setup-openfx --staging  # alias for sandbox — "staging" is the sandbox environment
-/setup-openfx --prod     # production (you'll confirm before any write)
+setup-openfx            # sandbox (default)
+setup-openfx --staging  # alias for sandbox — "staging" is the sandbox environment
+setup-openfx --prod     # production (you'll confirm before any write)
 ```
 
 The skill runs read-only checks automatically, asks for confirmation before any write, and — for the

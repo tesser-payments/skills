@@ -20,12 +20,14 @@ cp -R ~/.tesser-skills/skills/setup-openfx ~/.claude/skills/
 cp ~/.tesser-skills/commands/setup-openfx.md ~/.claude/commands/setup-openfx.md
 ```
 
-**Codex** — register a `/setup-openfx` slash command pointing at the cloned skill:
+**Codex** — install as a native user skill (Codex discovers skills under `~/.agents/skills/`).
+Symlink it so `git pull` in the clone keeps it current:
 ```bash
-mkdir -p ~/.codex/prompts
-printf 'Read and follow ~/.tesser-skills/skills/setup-openfx/SKILL.md to onboard an OpenFX account onto Tesser. Default to sandbox; pass --prod for production.\n' \
-  > ~/.codex/prompts/setup-openfx.md
+mkdir -p ~/.agents/skills
+ln -sfn ~/.tesser-skills/skills/setup-openfx ~/.agents/skills/setup-openfx
 ```
+> Do **not** use `~/.codex/prompts/` for this. A file there is invoked as the namespaced
+> `/prompts:setup-openfx`, not a top-level `/setup-openfx` — the skills dir above is the correct route.
 
 ### What to tell the user (default)
 
@@ -35,7 +37,7 @@ restart line:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  ✅  Tesser  /setup-openfx  is installed
+  ✅  Tesser OpenFX onboarding is installed
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   📦  Repo      ~/.tesser-skills
@@ -46,12 +48,16 @@ restart line:
   1.  Restart your session   →  <restart line>
   2.  Add credentials        →  cp ~/.tesser-skills/.env.example .env.local
                                  then fill in TESSER_API_KEY + TESSER_API_SECRET
-  3.  Run it                 →  /setup-openfx        (sandbox by default; --prod for production)
+  3.  Run it                 →  <invoke line>        (sandbox by default; --prod for production)
 ```
 
-**Restart line — use the one for your harness** (be explicit; "restart the session" alone is not enough):
-- **Claude Code:** `Quit Claude Code — press Ctrl-C twice (or type /exit) — then run "claude" again.`
-- **Codex:** `Quit Codex — press Ctrl-C twice (or Ctrl-D) — then run "codex" again.`
+Fill the **restart line** and **invoke line** from the row matching your harness — be explicit, since
+the invocation differs by tool and "restart the session" alone isn't enough:
+
+| Harness | Restart line | Invoke line |
+|---|---|---|
+| **Claude Code** | `Quit Claude Code — Ctrl-C twice (or /exit) — then run "claude" again.` | `/setup-openfx` |
+| **Codex** | `Quit Codex — Ctrl-C twice (or Ctrl-D) — then run "codex" again.` | `$setup-openfx`  (or open `/skills` and choose **setup-openfx**) |
 
 > Claude Code users can instead use the native marketplace:
 > `/plugin marketplace add tesser-payments/skills` then `/plugin install tesser-skills@tesser-skills`.
