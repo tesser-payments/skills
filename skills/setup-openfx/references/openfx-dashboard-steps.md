@@ -27,11 +27,15 @@ the webhook secret is **entered by hand** (Step 2).
 
 ## Step 1 — Download the API-key file, move it in, and parse it
 
-OpenFX dashboard → **API Keys & Webhooks** → create an API key (sandbox key for sandbox/staging,
-production key for prod). **Download the key's JSON** (named `OpenFX_api-key_*.json`), then **move it
-into the working directory** where you're running the skill (next to `.env.local`). It's gitignored,
-so it won't be committed — but it holds the ES256 private key, so keep it private and delete it when
-done.
+OpenFX dashboard → **API Keys & Webhooks** → **Add Api key**:
+
+1. Give it a name (e.g. "Tesser sandbox" or "Tesser production").
+2. Under permissions, enable **Trade** (required for deposits/withdrawals).
+3. Save, then **download the JSON** (named `OpenFX_api-key_*.json`).
+
+Use a sandbox key for sandbox/staging, a production key for prod. **Move the downloaded file into the
+working directory** where you're running the skill (next to `.env.local`). It's gitignored, so it
+won't be committed — but it holds the ES256 private key, so keep it private and delete it when done.
 
 The values are read automatically when the skill runs `load_openfx_env` — the helper
 (`scripts/dotenv.sh`) reads them with `jq` from the key file: `orgId`→`OPENFX_ORG_ID`,
@@ -77,8 +81,8 @@ OpenFX dashboard → **API Keys & Webhooks** → **Webhooks** tab → **Create W
 
 Dashboard UI reference (Webhooks tab, then the Create Webhook panel):
 
-![OpenFX webhooks list](./screenshots/openfx-webhooks-1.png)
-![Create Webhook panel](./screenshots/openfx-webhooks-2.png)
+OpenFX webhooks list — open: skills/setup-openfx/references/screenshots/openfx-webhooks-1.png
+Create Webhook panel — open: skills/setup-openfx/references/screenshots/openfx-webhooks-2.png
 
 ## Step 3 — Register the funding bank on OpenFX
 

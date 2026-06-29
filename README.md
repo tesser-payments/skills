@@ -24,6 +24,14 @@ agent's skills directory), then tells you how to restart. After restarting, just
 > agent that can run a shell and read files should be able to install and run the skill. If your
 > harness needs different steps, see the tool-name mapping in [`AGENTS.md`](./AGENTS.md).
 
+**Claude Code users** can also install via the native marketplace instead of the prompt above:
+
+```
+/plugin marketplace add tesser-payments/skills
+/plugin install tesser-skills@tesser
+```
+
+Then restart Claude Code and ask it to "set up OpenFX on Tesser".
 
 ## Commands
 
@@ -46,17 +54,11 @@ does the Tesser API calls, and one step is Tesser-assisted. The skill walks all 
 | 6 | Test a deposit — first fiat→fiat (e.g. USD→USD), then fiat→USDC | Tesser API creates it; **you** trigger the funds: OpenFX dashboard *simulate* (sandbox) or a *real wire* (prod) |
 
 <details>
-<summary>Install by hand (or Claude Code's native marketplace)</summary>
+<summary>Install by hand</summary>
 
 The [Quick start](#quick-start) prompt is the easy path; the exact steps it follows live in
-[`AGENTS.md`](./AGENTS.md) (clone to `~/.tesser-skills`, then copy `setup-openfx` into your agent's
-skills/prompts dir).
-
-**Claude Code (native marketplace):**
-```
-/plugin marketplace add tesser-payments/skills
-/plugin install tesser-skills@tesser-skills
-```
+[`AGENTS.md`](./AGENTS.md) (clone to `~/.tesser-skills`, then symlink `setup-openfx` into your
+agent's skills directory).
 
 **Any other agent:** point it at `skills/setup-openfx/SKILL.md`. Everything operational is plain
 `curl` + `jq`.
@@ -70,7 +72,7 @@ skills/prompts dir).
   `CLIENT_ID`/`CLIENT_SECRET` from it for you (parsed as data, never executed) — no copy-paste.
   (Already have creds? Exported env vars or demo-style `TESSER_CLIENT_ID`/`TESSER_CLIENT_SECRET` /
   `TESSER_API_KEY`/`TESSER_API_SECRET` all work too.)
-- **OpenFX API key file** — downloaded from the OpenFX dashboard (Phase 1); the skill parses it the
+- **OpenFX API key file** — downloaded from the OpenFX dashboard. The skill parses it the
   same way. You bring your own OpenFX account.
 
 Both downloaded credential files are gitignored (`*.env`, `OpenFX_api-key_*.json`) — they won't be

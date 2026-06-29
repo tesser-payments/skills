@@ -1,20 +1,23 @@
 {
-  "name": "tesser-skills",
+  "name": "tesser",
   "description": "Tesser Payments Platform agentic skills",
   "owner": {
     "name": "Tesser",
     "email": "engineering@tesser.xyz"
   },
+  "metadata": {
+    "description": "Agentic skills for onboarding onto and operating the Tesser Payments Platform.",
+    "version": "0.1.0"
+  },
   "plugins": [
     {
       "name": "tesser-skills",
-      "description": "Agentic skills for onboarding onto and operating the Tesser Payments Platform. Includes /setup-openfx.",
-      "version": "0.1.0",
+      "description": "Onboard and operate the Tesser Payments Platform. Includes setup-openfx for connecting an OpenFX liquidity-provider account.",
       "source": "./",
-      "author": {
-        "name": "Tesser",
-        "email": "engineering@tesser.xyz"
-      }
+      "strict": false,
+      "skills": [
+        "./skills/setup-openfx"
+      ]
     }
   ]
 }
