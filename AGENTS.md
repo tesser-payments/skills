@@ -67,7 +67,7 @@ Codex adds the `$setup-openfx` / `/skills` shortcuts; for a Claude Code `/setup-
 use the native marketplace install (below).
 
 > Claude Code users can instead use the native marketplace:
-> `/plugin marketplace add tesser-payments/skills` then `/plugin install tesser-skills@tesser-skills`.
+> `/plugin marketplace add tesser-payments/skills` then `/plugin install tesser-skills@tesser`.
 
 ## Skills
 

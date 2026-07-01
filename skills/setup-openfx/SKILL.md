@@ -223,6 +223,12 @@ registered bank against an OpenFX-registered fiat account, so any field mismatch
   1. register the bank with Tesser (`POST /v1/accounts/banks`), **and**
   2. add the **same exact values** in the **OpenFX dashboard** (as a fiat funding/withdrawal account).
 
+  **Never ask the user to type or paste bank account numbers, routing numbers, or other financial
+  details into the chat.** Generate a ready-to-run curl command with `<PLACEHOLDER>` values for every
+  sensitive field (account number, routing/CLABE, SWIFT, account holder name) and tell the user to
+  fill them in and run the command **in their terminal**. Bank details typed into the chat are stored
+  in conversation history and cannot be deleted.
+
   OpenFX **reviews** it — a hard gate: until the bank is **accepted**, deposits won't plan/settle. The
   two registrations must match exactly (name, bank name, code type, identifier, account number, SWIFT)
   or Tesser can't match the bank to the OpenFX account.
